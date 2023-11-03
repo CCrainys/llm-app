@@ -12,7 +12,8 @@ all_splits = text_splitter.split_documents(loader.load())
 # Store splits
 
 from langchain.embeddings import HuggingFaceEmbeddings
-model_name = "sentence-transformers/all-mpnet-base-v2"
+# model_name = "sentence-transformers/all-mpnet-base-v2"
+model_name = "../../LLM/all-mpnet-base-v2"
 model_kwargs = {'device': 'cpu'}
 encode_kwargs = {'normalize_embeddings': False}
 hf = HuggingFaceEmbeddings(
@@ -21,8 +22,15 @@ hf = HuggingFaceEmbeddings(
     encode_kwargs=encode_kwargs
 )
 
-from langchain.vectorstores import FAISS
-vectorstore = FAISS.from_documents(documents=all_splits, embedding=hf)
+from langchain.vectorstores import Milvus
+# vectorstore = FAISS.from_documents(documents=all_splits, embedding=hf)
+
+#host改成服务器ip
+vectorstore = Milvus.from_documents(
+    documents=all_splits,
+    embedding=hf,
+    connection_args={"host": "192.168.1.52", "port": "19530"},
+)
 retriever = vectorstore.as_retriever()
 
 # RAG prompt
@@ -34,7 +42,7 @@ from langchain.llms import VLLMOpenAI
 llm = VLLMOpenAI(
     openai_api_key="EMPTY",
     openai_api_base="http://localhost:8000/v1",
-    model_name="tiiuae/falcon-rw-7b",
+    model_name="../../LLM/llm",
     model_kwargs={"stop": ["."]}
 )
 
