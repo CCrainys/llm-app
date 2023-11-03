@@ -25,7 +25,7 @@ hf = HuggingFaceEmbeddings(
 from langchain.vectorstores import Milvus
 # vectorstore = FAISS.from_documents(documents=all_splits, embedding=hf)
 
-#host改成服务器ip
+#host: Your server IP
 vectorstore = Milvus.from_documents(
     documents=all_splits,
     embedding=hf,
