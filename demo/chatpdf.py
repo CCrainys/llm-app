@@ -2,9 +2,7 @@
 import argparse
 parser = argparse.ArgumentParser()  
   
-# 添加参数  
 parser.add_argument('--port', '-p', type=int, nargs='?', help='Port number of local LLM server')
-
 parser.add_argument('--local-model', '-l', type=str, nargs='?',
                     help='Path of local model')
 

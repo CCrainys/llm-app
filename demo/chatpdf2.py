@@ -1,19 +1,14 @@
 # Parse command line arguments
 import argparse
-parser = argparse.ArgumentParser()  
-  
-# 添加参数  
-parser.add_argument('--port', '-p', type=int, nargs='?', help='Port number of local LLM server')
+parser = argparse.ArgumentParser()
 
+parser.add_argument('--port', '-p', type=int, nargs='?', help='Port number of local LLM server')
 parser.add_argument('--local-model', '-l', type=str, nargs='?',
                     help='Path of local model')
+parser.add_argument('--ip', '-i', type=str, nargs='?',
+                    help='IP address of Milvus')
 
 args = parser.parse_args()
-  
-# 解析参数  
-args = parser.parse_args()  
-  
-print(args.accumulate(args.integers)) 
 
 from langchain.document_loaders import WebBaseLoader
 
@@ -42,11 +37,11 @@ hf = HuggingFaceEmbeddings(
 from langchain.vectorstores import Milvus
 # vectorstore = FAISS.from_documents(documents=all_splits, embedding=hf)
 
-# host: Your server IP
+host = args.ip if args.ip else "localhost"
 vectorstore = Milvus.from_documents(
     documents=all_splits,
     embedding=hf,
-    connection_args={"host": "192.168.1.52", "port": "19530"},
+    connection_args={"host": host, "port": "19530"},
 )
 retriever = vectorstore.as_retriever()
 
