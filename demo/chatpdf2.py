@@ -25,7 +25,7 @@ hf = HuggingFaceEmbeddings(
 from langchain.vectorstores import Milvus
 # vectorstore = FAISS.from_documents(documents=all_splits, embedding=hf)
 
-#host: Your server IP
+# host: Your server IP
 vectorstore = Milvus.from_documents(
     documents=all_splits,
     embedding=hf,
@@ -38,6 +38,7 @@ from langchain import hub
 rag_prompt = hub.pull("rlm/rag-prompt")
 
 # LLM
+# model_name: the path of the model
 from langchain.llms import VLLMOpenAI
 llm = VLLMOpenAI(
     openai_api_key="EMPTY",
