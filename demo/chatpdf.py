@@ -1,3 +1,15 @@
+# Parse command line arguments
+import argparse
+parser = argparse.ArgumentParser()  
+  
+# 添加参数  
+parser.add_argument('--port', '-p', type=int, nargs='?', help='Port number of local LLM server')
+
+parser.add_argument('--local-model', '-l', type=str, nargs='?',
+                    help='Path of local model')
+
+args = parser.parse_args()
+
 from langchain.document_loaders import WebBaseLoader
 
 loader = WebBaseLoader("https://lilianweng.github.io/posts/2023-06-23-agent/")
@@ -29,12 +41,15 @@ retriever = vectorstore.as_retriever()
 from langchain import hub
 rag_prompt = hub.pull("rlm/rag-prompt")
 
+port = args.port if args.port else 8000
+model_name = args.local_model if args.local_model else "tiiuae/falcon-rw-7b"
+
 # LLM
 from langchain.llms import VLLMOpenAI
 llm = VLLMOpenAI(
     openai_api_key="EMPTY",
-    openai_api_base="http://localhost:8000/v1",
-    model_name="tiiuae/falcon-rw-7b",
+    openai_api_base=f"http://localhost:{port}/v1",
+    model_name=model_name,
     model_kwargs={"stop": ["."]}
 )
 
