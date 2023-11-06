@@ -30,7 +30,6 @@ all_splits = text_splitter.split_documents(loader.load())
 from langchain.embeddings import HuggingFaceEmbeddings
 
 model_name = "sentence-transformers/all-mpnet-base-v2"
-# model_name = "../../LLM/all-mpnet-base-v2"
 model_kwargs = {"device": "cpu"}
 encode_kwargs = {"normalize_embeddings": False}
 hf = HuggingFaceEmbeddings(
@@ -90,6 +89,7 @@ async def ask(request):
         {"context": retriever, "question": RunnablePassthrough()} | rag_prompt | llm
     )
     result = await request.app.loop.run_in_executor(None, rag_chain.invoke, prompt)
+    print(result)
     return text(result)
 
 
