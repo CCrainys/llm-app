@@ -5,12 +5,16 @@
 Install POCO:
 
 ```
-sudo apt-get install openssl libssl-dev
-sudo apt install build-essential gdb cmake git
-sudo apt-get install libiodbc2 libiodbc2-dev libmysqlclient-dev libpq-dev
+sudo apt-get install -y openssl libssl-dev build-essential gdb cmake git libiodbc2 libiodbc2-dev libmysqlclient-dev libpq-dev
 cd /tmp
 git clone -b master https://github.com/pocoproject/poco.git
-cd poco && mkdir build && cd build && cmake ..
+cd poco && mkdir -p build && cd build && cmake ..
 cmake --build . --config Release -j
 sudo cmake --build . --target install
+```
+You might need to add `/usr/local/lib` to LD_LIBRARY_PATH:
+
+```
+echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/lib" >> ~/.zshrc
+exec zsh
 ```
