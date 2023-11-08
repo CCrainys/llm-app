@@ -5,5 +5,11 @@ LDLIBS := -lPocoNet -lPocoFoundation
 
 all: $(TARGET)
 
+debug: CXXFLAGS += -DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG
+debug: $(TARGET)
+
+.PHONY clean:
+	rm -f $(TARGET)
+
 $TARGET:
 	$(CXX) $(CXXFLAGS) -o $@ $@.cpp $(LDLIBS)

@@ -1,3 +1,4 @@
+#include "spdlog/spdlog.h"
 #include <Poco/Exception.h>
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/Net/HTTPRequest.h>
@@ -11,7 +12,8 @@
 #include <string>
 #include <thread>
 
-void get_answer(std::string prompt, std::promise<std::pair<std::string, double>> prom) {
+void get_answer(std::string prompt,
+                std::promise<std::pair<std::string, double>> prom) {
     try {
         auto start = std::chrono::high_resolution_clock::now();
         Poco::URI uri("http://localhost:8080/");
@@ -48,12 +50,15 @@ int main() {
     std::vector<std::string> prompts = {"What is Task Decomposition?",
                                         "What is AI?", "What is Python?",
                                         "What is C++?"};
-    auto repeats = 100;
+    auto repeats = 10;
 
     threads.reserve(prompts.size());
 
     double total_inference_time = 0;
     double total_request_time = 0;
+
+    // FIXME: conditional compilation doesn't work here
+    spdlog::set_level(spdlog::level::debug);
 
     for (int i = 0; i < repeats; i++) {
         for (auto &prompt : prompts) {
@@ -68,9 +73,9 @@ int main() {
             auto len = result.size();
             auto answer = result.substr(0, len - 10);
             auto inference_time = result.substr(len - 10, 10);
-            std::cout << "result: " << answer << std::endl;
-            std::cout << "inference_time: " << inference_time << std::endl;
-            std::cout << "request_time: " << request_time << std::endl;
+            spdlog::debug("result: {}", answer);
+            spdlog::debug("inference_time: {}", inference_time);
+            spdlog::debug("request_time: {}", request_time);
 
             total_inference_time += std::stod(inference_time);
             total_request_time += request_time;
@@ -81,8 +86,8 @@ int main() {
         thread.join();
     }
 
-    std::cout << "average_inference_time: " << total_inference_time / prompts.size() / repeats << std::endl;
-    std::cout << "average_request_time: " << total_request_time / prompts.size() / repeats << std::endl;
+    spdlog::info("average_inference_time: {:<10.8f}", total_inference_time / prompts.size() / repeats);
+    spdlog::info("total_request_time: {:<10.8f}", total_request_time / prompts.size() / repeats);
 
     return 0;
 }
