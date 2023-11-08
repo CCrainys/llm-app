@@ -50,44 +50,50 @@ int main() {
     std::vector<std::string> prompts = {"What is Task Decomposition?",
                                         "What is AI?", "What is Python?",
                                         "What is C++?"};
-    auto repeats = 10;
 
-    threads.reserve(prompts.size());
+    std::vector<int> repeat_times = {1, 2, 4, 8, 16, 32, 64};
+    for (auto repeats : repeat_times) {
+        threads.resize(prompts.size() * repeats);
 
-    double total_inference_time = 0;
-    double total_request_time = 0;
+        double total_inference_time = 0;
+        double total_request_time = 0;
 
-    // FIXME: conditional compilation doesn't work here
-    spdlog::set_level(spdlog::level::debug);
+        auto index = 0;
 
-    for (int i = 0; i < repeats; i++) {
-        for (auto &prompt : prompts) {
-            std::promise<std::pair<std::string, double>> prom;
-            auto fut = prom.get_future();
-            threads.emplace_back(get_answer, std::move(prompt), std::move(prom));
-            auto [result, request_time] = fut.get();
-            if (result == "error") {
-                std::cout << "error" << std::endl;
-                continue;
+        // FIXME: conditional compilation doesn't work here
+        spdlog::set_level(spdlog::level::info);
+
+        for (int i = 0; i < repeats; i++) {
+            for (auto &prompt : prompts) {
+                std::promise<std::pair<std::string, double>> prom;
+                auto fut = prom.get_future();
+                threads[index] = std::thread(get_answer, std::move(prompt), std::move(prom));
+                auto [result, request_time] = fut.get();
+                if (result == "error") {
+                    std::cout << "error" << std::endl;
+                    continue;
+                }
+                auto len = result.size();
+                auto answer = result.substr(0, len - 10);
+                auto inference_time = result.substr(len - 10, 10);
+                spdlog::debug("result: {}", answer);
+                spdlog::debug("inference_time: {}", inference_time);
+                spdlog::debug("request_time: {}", request_time);
+
+                total_inference_time += std::stod(inference_time);
+                total_request_time += request_time;
+                index++;
             }
-            auto len = result.size();
-            auto answer = result.substr(0, len - 10);
-            auto inference_time = result.substr(len - 10, 10);
-            spdlog::debug("result: {}", answer);
-            spdlog::debug("inference_time: {}", inference_time);
-            spdlog::debug("request_time: {}", request_time);
-
-            total_inference_time += std::stod(inference_time);
-            total_request_time += request_time;
         }
-    }
 
-    for (std::thread &thread : threads) {
-        thread.join();
-    }
+        for (std::thread &thread : threads) {
+            thread.join();
+        }
 
-    spdlog::info("average_inference_time: {:<10.8f}", total_inference_time / prompts.size() / repeats);
-    spdlog::info("total_request_time: {:<10.8f}", total_request_time / prompts.size() / repeats);
+        spdlog::info("number of threads:{}", index);
+        spdlog::info("average inference time: {:<10.8f}", total_inference_time / static_cast<double>(index));
+        spdlog::info("total request time: {:<10.8f}", total_request_time / static_cast<double>(index));
+    }
 
     return 0;
 }
