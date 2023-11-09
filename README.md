@@ -3,7 +3,7 @@
 ## Dependencies
 
 ```bash
-pip install langchain bs4 sentence-transformers chromadb langchainhub openai==0.28.1 pymilvus sanic
+pip install langchain bs4 sentence-transformers chromadb langchainhub openai==0.28.1 pymilvus fastapi uvicorn
 ```
 
 ## Usage

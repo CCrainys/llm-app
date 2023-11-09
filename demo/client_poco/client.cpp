@@ -1,5 +1,6 @@
 #include "spdlog/spdlog.h"
 #include <Poco/Exception.h>
+#include <Poco/JSON/Parser.h>
 #include <Poco/Net/HTTPClientSession.h>
 #include <Poco/Net/HTTPRequest.h>
 #include <Poco/Net/HTTPResponse.h>
@@ -13,7 +14,7 @@
 #include <thread>
 
 void get_answer(std::string prompt,
-                std::promise<std::pair<std::string, double>> prom) {
+                std::promise<std::tuple<std::string, double, double>> prom) {
     try {
         auto start = std::chrono::high_resolution_clock::now();
         Poco::URI uri("http://localhost:8080/");
@@ -32,16 +33,21 @@ void get_answer(std::string prompt,
 
         Poco::Net::HTTPResponse res;
         std::istream &rs = session.receiveResponse(res);
-        std::string answer;
-        Poco::StreamCopier::copyToString(rs, answer);
+
+        std::string result;
+        Poco::StreamCopier::copyToString(rs, result);
+        auto parsed_object = Poco::JSON::Parser().parse(result).extract<Poco::JSON::Object::Ptr>();
+        auto answer = parsed_object->getValue<std::string>("answer");
+        auto inference_time_str = parsed_object->getValue<std::string>("inference_time");
+        auto inference_time = std::stod(inference_time_str);
 
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> diff = end - start;
         auto request_time = diff.count();
-        prom.set_value({answer, request_time});
+        prom.set_value({answer, inference_time, request_time});
     } catch (Poco::Exception &ex) {
         std::cerr << ex.displayText() << std::endl;
-        prom.set_value({"error", 0});
+        prom.set_value({"error", 0, 0});
     }
 }
 
@@ -56,26 +62,24 @@ int main() {
         double total_request_time = 0;
 
         // FIXME: conditional compilation doesn't work here
-        spdlog::set_level(spdlog::level::debug);
+        spdlog::set_level(spdlog::level::info);
 
         for (int i = 0; i < thread; i++) {
             auto prompt = std::string("What is USTC?");
-            std::promise<std::pair<std::string, double>> prom;
+            std::promise<std::tuple<std::string, double, double>> prom;
             auto fut = prom.get_future();
             threads[i] = std::thread(get_answer, std::move(prompt), std::move(prom));
-            auto [result, request_time] = fut.get();
-            if (result == "error") {
+            auto [answer, inference_time, request_time] = fut.get();
+            if (answer == "error") {
                 std::cout << "error" << std::endl;
                 continue;
             }
-            auto len = result.size();
-            auto answer = result.substr(0, len - 10);
-            auto inference_time = result.substr(len - 10, 10);
-            spdlog::debug("result: {}", answer);
-            spdlog::debug("inference_time: {}", inference_time);
-            spdlog::debug("request_time: {}", request_time);
 
-            total_inference_time += std::stod(inference_time);
+            spdlog::debug("result: {}", answer);
+            spdlog::debug("inference_time: {:<10.8f}", inference_time);
+            spdlog::debug("request_time: {:<10.8f}", request_time);
+
+            total_inference_time += inference_time;
             total_request_time += request_time;
         }
 
@@ -85,7 +89,7 @@ int main() {
 
         spdlog::info("number of threads:{}", thread);
         spdlog::info("average inference time: {:<10.8f}", total_inference_time / static_cast<double>(thread));
-        spdlog::info("total request time: {:<10.8f}", total_request_time / static_cast<double>(thread));
+        spdlog::info("average request time: {:<10.8f}", total_request_time / static_cast<double>(thread));
     }
 
     return 0;

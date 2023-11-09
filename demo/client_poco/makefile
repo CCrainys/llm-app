@@ -1,7 +1,7 @@
 CXX := g++
 TARGET := client
 CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -pthread
-LDLIBS := -lPocoNet -lPocoFoundation
+LDLIBS := -lPocoNet -lPocoJSON -lPocoFoundation
 
 all: $(TARGET)
 

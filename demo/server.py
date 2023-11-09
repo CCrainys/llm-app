@@ -63,42 +63,34 @@ llm = VLLMOpenAI(
 from langchain.schema.runnable import RunnablePassthrough
 
 
-def get_retriever():
-    vectorstore = Milvus.from_documents(
-        documents=all_splits,
-        embedding=hf,
-        connection_args={"host": host, "port": "19530"},
-    )
-    retriever = vectorstore.as_retriever()
-    return retriever
+# def get_retriever():
+vectorstore = Milvus.from_documents(
+    documents=all_splits,
+    embedding=hf,
+    connection_args={"host": host, "port": "19530"},
+)
+retriever = vectorstore.as_retriever()
+# return retriever
 
 
 # start a web server
 
-from sanic import Sanic
-from sanic.response import text
-
-app = Sanic("app")
-
+from fastapi import FastAPI
+import uvicorn
 import time
 
+app = FastAPI()
+
 @app.get("/")
-async def ask(request):
-    prompt = request.args.get("prompt", "What is Task Decomposition?")
-    time1 = time.time()
-    retriever = await request.app.loop.run_in_executor(None, get_retriever)
-    time2 = time.time()
+async def ask(prompt: str):
     rag_chain = (
         {"context": retriever, "question": RunnablePassthrough()} | rag_prompt | llm
     )
-    time3 = time.time()
-    result = await request.app.loop.run_in_executor(None, rag_chain.invoke, prompt)
-    time4 = time.time()
-    print("Retriever time:", time2 - time1)
-    print("Creation time:", time3 - time2)
-    print("Invoke time:", time4 - time3)
-    return text(result)
+    result = rag_chain.invoke(prompt)
+    answer = result[:-10]
+    inference_time = result[-10:]
+    return {"answer": answer, "inference_time": inference_time}
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8080, debug=True)
+    uvicorn.run(app, host="127.0.0.1", port=8080, log_level="info")
