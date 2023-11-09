@@ -80,16 +80,23 @@ from sanic.response import text
 
 app = Sanic("app")
 
+import time
 
 @app.get("/")
 async def ask(request):
     prompt = request.args.get("prompt", "What is Task Decomposition?")
+    time1 = time.time()
     retriever = await request.app.loop.run_in_executor(None, get_retriever)
+    time2 = time.time()
     rag_chain = (
         {"context": retriever, "question": RunnablePassthrough()} | rag_prompt | llm
     )
+    time3 = time.time()
     result = await request.app.loop.run_in_executor(None, rag_chain.invoke, prompt)
-    print(result)
+    time4 = time.time()
+    print("Retriever time:", time2 - time1)
+    print("Creation time:", time3 - time2)
+    print("Invoke time:", time4 - time3)
     return text(result)
 
 
