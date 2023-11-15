@@ -56,6 +56,8 @@ llm = VLLMOpenAI(
     openai_api_base=f"http://localhost:{port}/v1",
     model_name=model_name,
     model_kwargs={"stop": ["."]},
+    temperature=0,
+    max_tokens=20,
 )
 
 # RAG chain
