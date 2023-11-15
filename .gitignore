@@ -3,3 +3,5 @@ docker-compose.yml
 __pycache__
 demo/client_poco/client
 .vscode
+benchmark/*.txt
+benchmark/*.png
