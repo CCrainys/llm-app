@@ -13,13 +13,9 @@
 #include <string>
 #include <thread>
 
-// Have to be global to avoid copying in the thread
-std::vector<std::string> prompts = {"What is Task Decomposition?",
-                                    "What is AI?", "What is Python?",
-                                    "What is C++?"};
-
-void get_answer(int thread_id,
-                std::promise<std::tuple<double, double>> prom) {
+void get_answer(int thread_id, std::vector<std::string> prompts,
+                std::promise<std::tuple<double, double>>
+                    prom) {
     spdlog::debug("thread_id: {}", thread_id);
     double total_inference_time = 0;
     double total_request_time = 0;
@@ -30,10 +26,12 @@ void get_answer(int thread_id,
             double inference_time = 0;
             double request_time = 0;
             try {
+                auto i = find(prompts.begin(), prompts.end(), prompt) - prompts.begin();
                 auto start = std::chrono::high_resolution_clock::now();
 
                 Poco::URI uri("http://localhost:8080/");
                 Poco::Net::HTTPClientSession session(uri.getHost(), uri.getPort());
+                session.setTimeout(Poco::Timespan(10000, 0));
                 uri.addQueryParameter("prompt", prompt);
                 auto path(uri.getPathAndQuery());
 
@@ -41,9 +39,11 @@ void get_answer(int thread_id,
                                            Poco::Net::HTTPMessage::HTTP_1_1);
 
                 session.sendRequest(req);
+                spdlog::info("thread {} request {} sent", thread_id, i);
 
                 Poco::Net::HTTPResponse res;
                 std::istream &rs = session.receiveResponse(res);
+                spdlog::info("thread {} request {} received", thread_id, i);
 
                 std::string result;
                 Poco::StreamCopier::copyToString(rs, result);
@@ -77,34 +77,40 @@ void get_answer(int thread_id,
 
 int main() {
     std::vector<std::thread> threads;
+    std::vector<std::future<std::tuple<double, double>>> futures;
+    std::vector<std::string> prompts = {"What is Task Decomposition?",
+                                        "What is AI?", "What is Python?",
+                                        "What is C++?"};
 
-    std::vector<int> num_threads = {256};
+    // FIXME: conditional compilation doesn't work here
+    spdlog::set_level(spdlog::level::debug);
+    std::vector<int> num_threads = {1, 2, 4, 8, 16, 32, 64};
     for (auto thread : num_threads) {
         threads.resize(thread);
+        futures.resize(thread);
 
         double total_inference_time = 0;
         double total_request_time = 0;
 
-        // FIXME: conditional compilation doesn't work here
-        spdlog::set_level(spdlog::level::debug);
-
         for (int i = 0; i < thread; i++) {
             std::promise<std::tuple<double, double>> prom;
-            auto fut = prom.get_future();
-            threads[i] = std::thread(get_answer, i, std::move(prom));
-            auto [inference_time, request_time] = fut.get();
-
-            total_inference_time += inference_time;
-            total_request_time += request_time;
+            futures[i] = prom.get_future();
+            threads[i] = std::thread(get_answer, i, std::ref(prompts), std::move(prom));
         }
 
         for (std::thread &thread : threads) {
             thread.join();
         }
 
+        for (auto &fut: futures) {
+            auto [inference_time, request_time] = fut.get();
+            total_inference_time += inference_time;
+            total_request_time += request_time;
+        }
+
         spdlog::info("number of threads: {}", thread);
-        spdlog::info("average inference time: {:<10.8f}", total_inference_time / static_cast<double>(thread * prompts.size()));
-        spdlog::info("average request time: {:<10.8f}", total_request_time / static_cast<double>(thread * prompts.size()));
+        spdlog::info("average inference time: {:<10.8f}s", total_inference_time / static_cast<double>(thread * prompts.size()));
+        spdlog::info("average request time: {:<10.8f}s", total_request_time / static_cast<double>(thread * prompts.size()));
     }
 
     return 0;

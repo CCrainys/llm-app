@@ -6,4 +6,4 @@ set output 'gpu_usage.png'
 set title 'GPU Utilization Over Time'
 set xlabel 'Time (s)'
 set ylabel 'Utilization (%)'
-plot 'gpu_usage.txt' using ($0*0.5):1 title 'GPU Utilization' with lines  
+plot 'gpu_usage.txt' using ($0*0.1):1 title 'GPU Utilization' with lines  

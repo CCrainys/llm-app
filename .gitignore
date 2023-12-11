@@ -5,3 +5,4 @@ demo/client_poco/client
 .vscode
 benchmark/*.txt
 benchmark/*.png
+**/*.log
