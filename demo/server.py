@@ -14,24 +14,11 @@ parser.add_argument("--ip", "-i", type=str, nargs="?", help="IP address of Milvu
 
 args = parser.parse_args()
 
-from langchain.document_loaders import WebBaseLoader
-
-loader = WebBaseLoader("https://lilianweng.github.io/posts/2023-06-23-agent/")
-
-# Split
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
-all_splits = text_splitter.split_documents(loader.load())
-
-
-# Store splits
-
 from langchain.embeddings import HuggingFaceEmbeddings
 
 model_name = "sentence-transformers/all-mpnet-base-v2"
 model_kwargs = {"device": "cpu"}
-encode_kwargs = {"normalize_embeddings": False}
+encode_kwargs = {"normalize_embeddings": True}
 hf = HuggingFaceEmbeddings(
     model_name=model_name, model_kwargs=model_kwargs, encode_kwargs=encode_kwargs
 )
@@ -64,16 +51,15 @@ llm = VLLMOpenAI(
 
 from langchain.schema.runnable import RunnablePassthrough
 
+collection_name = "TestLangchain"
 
-# def get_retriever():
-vectorstore = Milvus.from_documents(
-    documents=all_splits,
-    embedding=hf,
+vectorstore = Milvus(
+    hf,
     connection_args={"host": host, "port": "19530"},
+    collection_name=collection_name
 )
-retriever = vectorstore.as_retriever()
-# return retriever
 
+retriever = vectorstore.as_retriever()
 
 # start a web server
 
